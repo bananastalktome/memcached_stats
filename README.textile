@@ -1,17 +1,218 @@
-= memcached_stats
+h1. Memcached Stats
 
-Description goes here.
+<i>*Note:* This gem is probably not yet ready for production environments. Use at your own discretion.</i>
 
-== Note on Patches/Pull Requests
+The goal of this gem is to provide overall memcached statistics (uptime, size, etc/) as well as an advanced look at cache slabs, providing slab item statistics as well as slab keys and values arranged hierarchically. As of the current release, this gem does not use the memcached binary protocol, therefore memcached versions prior to 1.4 (as well as 1.4+) should work fine with this gem. Please open an issue through github specifying your version of memcached if you find this is not the case.
+
+
+The following usage guidelines are subject to change...at least until 0.1.x release (which may or may not occur).
+
+h2. Usage
+
+h3. Basics
+
+<pre>
+<code>
+  $ gem install memcached_stats
+</code>
+</pre>
+
+(You may need to install the gem with @sudo@ prepended)
+
+The steps below assume usage from irb, however this gem can just as easily be used within a Rails project.
+
+First, require the @memcached_stats@ gem.
+
+<pre>
+<code>
+  require 'memcached_stats'
+</code>
+</pre>
+
+memcached_stats assumes a default host of @localhost@ and a port of @11211@. Values other than the default can be specified when creating a new @MemcachedStats@ object:
+
+<pre>
+<code>
+  stats = MemcachedStats.new(your_host, your_port)
+</code>
+</pre>
+
+In the @new@ method, a third parameter (the @identifier@) can be specified, which serves as a way to identify the memcached instance in output. This is purely presentational, and defaults to the host if not provided.
+
+After you create the new @MemcachedStats@ object, you can fetch the basic stats from memcached:
+
+<pre>
+<code>
+  stats.fetch_stats
+</code>
+</pre>
+
+h3. Summary Statistics
+
+Once you do this, you have access to the following default memcached statistics through the following instance accessor methods (via attributes courtesy of @method_missing@) which are described in greater detail "on the memcached github page":https://github.com/memcached/memcached/blob/master/doc/protocol.txt under the "General-purpose statistics" heading. The definitions below are copied directly from this document:
+
+*NOTE:* These memcached statistics methods are somewhat memcached version specific. They are defined in the text protocol of your particular memcached version, which can be viewed by visiting the github page linked above and switching to the tag which corresponds to your memcached version. Alternatively, via irb following the steps above, run @stats.summary.keys@ to view the keys which @MemcachedStats@ was able to attain.
+
+@pid@ - Process id of this server process
+@uptime@ - Number of secs since the server started
+@time@ - current UNIX time according to the server
+@version@ - Version string of this server 
+@pointer_size@ - Default size of pointers on the host OS (generally 32 or 64)
+@rusage_user@ - Accumulated user time for this process (seconds:microseconds)
+@rusage_system@ - Accumulated system time for this process (seconds:microseconds)
+@curr_items@ - Current number of items stored
+@total_items@ - Total number of items stored since the server started
+@bytes@ - Current number of bytes used to store items
+@curr_connections@ - Number of open connections
+@total_connections@ - Total number of connections opened since the server started running
+@connection_structures@ - Number of connection structures allocated by the server
+@cmd_get@ - Cumulative number of retrieval requests
+@cmd_set@ - Cumulative number of storage requests
+@cmd_flush@ - Cumulative number of flush requests
+@get_hits@ - Number of keys that have been requested and found present
+@get_misses@ - Number of items that have been requested and not found
+@delete_misses@ - Number of deletions requests for missing keys
+@delete_hits@ - Number of deletion requests resulting in an item being removed
+@incr_misses@ - Number of increment requests against missing keys
+@incr_hits@ - Number of successful increment requests
+@decr_misses@ - Number of decrement requests against missing keys
+@decr_hits@ - Number of successful decrement requests
+@cas_misses@ - Number of CAS reqs against missing keys
+@cas_hits@ - Number of successful CAS reqs
+@cas_badval@ - Number of CAS reqs for which a key was found, but the CAS value did not match
+@auth_cmds@ - Number of authentication commands handled, success or failure
+@auth_errors@ - Number of failed authentications
+@evictions@ - Number of valid items removed from cache to free memory for new items
+@reclaimed@ - Number of times an entry was stored using memory from an expired entry
+@bytes_read@ - Total number of bytes read by this server from network
+@bytes_written@ - Total number of bytes sent by this server to network
+@limit_maxbytes@ - Number of bytes this server is allowed to use for storage
+@accepting_conns@ - 
+@listen_disabled_num@ - 
+@threads@ - Number of worker threads requested
+@conn_yields@ - Number of times any connection yielded to another due to hitting the memcached @-R@ limit
+
+
+The following are defined as well, providing a few more useful metrics:
+
+@hit_ratio@ - Number of keys requested and found present over the total number of retrieval requests
+@miss_ratio@ - Number of keys requested and not found over the total number of retrieval requests
+@request_rate@ - Number of key retrieval requests over the memcached instance uptime (aka 'requests per second')
+@hit_rate@ - Number of keys requested and found present over the memcached instance uptime (aka 'cache hits per second')
+@miss_rate@ - Number of keys requested and not found over the memcached instance uptime (aka 'cache misses per second')
+
+
+
+h3. Slab Item Statistics
+
+The @fetch_stats@ instance method not only provides top level memcached statistics, but also gathers statistics for memcached slabs. Each slab is accessible via the @slabs@ accessor: a hash of hashes, the first of which is keyed by the slab_id, then the resultant hash is keyed by the statistic of interest. So for example:
+
+<pre>
+<code>
+  stats.slabs # => {"1"=>{"number"=>"1234", "age"=>"7000", "evicted"=>"0", "evicted_nonzero"=>"0", "evicted_time"=>"0", "outofmemory"=>"0", "tailrepairs"=>"0", "reclaimed"=>"0"}, "2"=>{"number"=>"122", "age"=>"161000", "evicted"=>"0", "evicted_nonzero"=>"0", "evicted_time"=>"0", "outofmemory"=>"0", "tailrepairs"=>"0", "reclaimed"=>"1"}...}
+  
+  stats.slabs["1"] # => {"number"=>"1234", "age"=>"7000", "evicted"=>"0", "evicted_nonzero"=>"0", "evicted_time"=>"0", "outofmemory"=>"0", "tailrepairs"=>"0", "reclaimed"=>"0"}
+  
+  stats.slabs["1"].number # => "1234"
+</code>
+</pre>
+
+
+"on the memcached github page":https://github.com/memcached/memcached/blob/master/doc/protocol.txt under the "Item statistics" heading, the slabs statistics represented in the slabs hash above are explained as follows:
+
+
+@number@ - Number of items presently stored in this class (expired items are not automatically excluded)
+@age@ - Age of the oldest item in the LRU
+@evicted@ - Number of times an item had to be evicted from the LRU before it expired
+@evicted_nonzero@ - Number of times an item which had an explicit expire time set had to be evicted from the LRU before it expired
+@evicted_time@ - Seconds since the last access for the most recent item evicted from this class (use this to judge how recently active your evicted data is)
+@outofmemory@ - Number of times the underlying slab class was unable to store a new item (this means you are running memcached with @-M@ or an eviction failed)
+@tailrepairs@ - Number of times we self-healed a slab with a refcount leak
+@reclaimed@ - Number of times an entry was stored using memory from an expired entry
+
+
+h3. Slab Keys
+
+
+One of the nice features of this gem is the ability to fetch all slab keys in a hierarchical hash. This is best explained with an example:
+
+Suppose your stored the following keys and corresponding values in memcached
+
+<pre>
+"User:bananastalktome:EmailCount" = 1
+"User:bananastalktome:Alerts" = 5
+"User:anotheruser:EmailCount" = 0
+"Post:Article:12:title" = "This article is cool"
+</pre>
+
+Using this gem, call @fetch_all_slab_keys@ on the @MemcachedStats@ object (@stats@) created above. The following hash will result, as an attribute called @slab_keys@:
+
+<pre>
+{
+  { 
+    "User" => 
+    { 
+      "bananastalktome" => 
+      { 
+        "EmailCount" => 
+        {
+        }
+      , "Alerts" =>
+        {
+        
+        }
+      }
+      , "anotheruser" =>
+      {
+        "EmailCount" =>
+        {
+        }
+      }      
+    }
+  , "Post" => 
+  { 
+    "Article" =>
+    { 
+      "12" =>
+      { 
+        "title" =>
+        {
+        }
+      }
+    }
+  }
+}
+</pre>
+
+Arranging the cache keys in this manner allows quick traversal down a hash to determine if a given key exists and, if it does, in which slab the key exists. For the lowest level of each tree in the hash, there is a @prod@ defined called @value@, which can be invoked to retrieve the value for that particular cache key. For example:
+
+<pre>
+<code>
+  stats.slab_keys["User"]["bananastalktome"]["EmailCount"].value # => 1
+</code>
+</pre>
+
+
+h2. Experimental Branch
+
+In the experimental branch of this project, I am messing with the ability to gather stats from multiple memcached instances configured in a cluster (as done in many production Rails projects) <i>in an intuitive way</i>. If you would like to help out with this, please 
+
+
+h2. Bugs and Feedback
+
+If you notice any bugs, would like any features added, or would just like to write code or tests ( <i>hint hint :)</i> ), please do not hesitate to do so! Either follow the *Note on Patches/Pull Requests* guidelines below, submit a issue through github, or email me directly at bananastalktome@gmail.com.
+
+
+h2. Note on Patches/Pull Requests
  
 * Fork the project.
 * Make your feature addition or bug fix.
 * Add tests for it. This is important so I don't break it in a
-  future version unintentionally.
-* Commit, do not mess with rakefile, version, or history.
+  future version unintentionally. (I tend to be lax on tests, so if you want to make some for the code that I already have, you get bonus points!)
+* Commit, do not mess with Rakefile, VERSION, history, or other files not directly relevant to your contribution.
   (if you want to have your own version, that is fine but bump version in a commit by itself I can ignore when I pull)
-* Send me a pull request. Bonus points for topic branches.
+* Send me a pull request. Bonus points for fun request messages.
 
-== Copyright
+h2. Copyright
 
 Copyright (c) 2010 William Schneider. See LICENSE for details.
