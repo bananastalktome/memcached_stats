@@ -5,12 +5,13 @@ begin
   require 'jeweler'
   Jeweler::Tasks.new do |gem|
     gem.name = "memcached_stats"
-    gem.summary = %Q{TODO: one-line summary of your gem}
-    gem.description = %Q{TODO: longer description of your gem}
+    gem.summary = %Q{one-line summary of your gem}
+    gem.description = %Q{longer description of your gem}
     gem.email = "bananastalktome@gmail.com"
     gem.homepage = "http://github.com/bananastalktome/memcached_stats"
     gem.authors = ["William Schneider"]
     gem.add_development_dependency "thoughtbot-shoulda", ">= 0"
+    gem.files = Dir.glob('lib/**/*.rb')
     # gem is a Gem::Specification... see http://www.rubygems.org/read/chapter/20 for additional settings
   end
   Jeweler::GemcutterTasks.new
