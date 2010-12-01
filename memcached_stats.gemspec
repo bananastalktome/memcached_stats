@@ -9,7 +9,7 @@ Gem::Specification.new do |s|
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["William Schneider"]
-  s.date = %q{2010-11-30}
+  s.date = %q{2010-12-01}
   s.description = %q{Gather Memcached Stats as well as Slabs}
   s.email = %q{bananastalktome@gmail.com}
   s.extra_rdoc_files = [

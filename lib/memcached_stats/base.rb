@@ -1,6 +1,7 @@
 class MemcachedStats
-  attr_reader :host, :port, :identifier, :summary, :slabs, :slab_keys
+  attr_reader :host, :port, :summary, :slabs, :slab_keys
   
+  ## Altered code from watsonian/memcache_do gem
   def self.service_connection(command, host, port, &block)
     begin
       data = ''
@@ -16,15 +17,14 @@ class MemcachedStats
       sock.close
       data
     rescue => e
-      # TODO: REVISIT LATER, MAYBE RAISE SOMETHING
-      puts e
+      ## ToDo: REVISIT LATER, MAYBE RAISE SOMETHING
+      #puts e
     end
   end
   
-  def initialize(host = "localhost", port = 11211, identifier = nil)
+  def initialize(host = "localhost", port = 11211)
     @host = host
     @port = port.to_i
-    @identifier = identifier.nil? ? host : identifier
     @slab_keys = { }
     self
   end
@@ -35,9 +35,9 @@ class MemcachedStats
     self
   end
   
-  def inspect
-    [@host, @port, @summary]
-  end
+  #def inspect
+    #[@host, @port, @summary]
+  #end
 
 #   # Commented out since I feel (at least at the moment) that it is out of the scope of what
 #   #   this gem should do.
@@ -58,8 +58,14 @@ class MemcachedStats
     slab_id = slab.is_a?(Fixnum) ? slab : (slab.is_a?(Array) ? slab.first : nil)
     
     MemcachedStats.service_connection("stats cachedump #{slab_id} 0", @host, @port).sub("END\r\n","").each_line do |line|
-      # TODO: Colon might not be delineator 
-      tmp = line.sub("ITEM ", "").split(" ").first.split(":")
+      #tmp = line.sub("ITEM ", "").split(" ").first.split(":")
+      
+      ## ToDo: Colon might not be delineator
+      
+      tmp = line.match(/ITEM\ (.*?)\ \[(\d*)\ b\;\ (\d*)\ s\]/).to_a[1..-1] # 0:key, 1:size, 2:expires
+      #ITEM User:3293:EmailCount [4 b; 1289245903 s]
+      #   [size; expires_timestamp]
+      
       record_slab_data(tmp, slab_id)
     end
     true
@@ -91,11 +97,12 @@ class MemcachedStats
   private
   
   def record_slab_data(data, slab_id)
-    cache_key = data.join(":")
-    first = data.shift
+    cache_key = data[0] #data.join(":")
+    key = cache_key.split(":")
+    first = key.shift
     @slab_keys[first] = { } unless @slab_keys[first]
     pointer = @slab_keys[first]
-    while elem = data.shift
+    while elem = key.shift
       pointer[elem] = { } unless pointer[elem]
       pointer = pointer[elem]
     end
@@ -105,31 +112,30 @@ class MemcachedStats
     
     pointer.define_singleton_method(:value) do
       Proc.new do
-        a = MemcachedStats.service_connection("get #{cache_key}", host, port).split
+        #a = MemcachedStats.service_connection("get #{cache_key}", host, port).split
+        ## a => ["VALUE", "Billy:TestKey", "1", "29", "\x04\bI\"\bHey\x06:", "encoding\"", "US-ASCII", "END"]
+        #value = a[4..-4].join(" ")
+        #value += "\r#{a[-3]}\r#{a[-2]}"
         
-        #p "#{a}"
-        #socket = TCPSocket.new(host, port)
-        #socket.write("get #{cache_key}\r\n")
-        #resp = socket.gets
-        #value = socket.read(a[3].to_i) # a[3] is length
-        #value = "#{a[4]}\r#{a[5]}\r#{a[6]}"
-        
-        value = a[4..-4].join(" ")
-        value += "\r#{a[-3]}\r#{a[-2]}"
-        
-        #p "#{value}"
+        socket = TCPSocket.new(host, port)
+        socket.write("get #{cache_key}\r\n")
+        socket.gets
+        value = socket.read(data[1].to_i)
+        socket.close
         
         begin
           Marshal.load value
         rescue TypeError # Meaning marshalling failed
-          a[4..-2].join(" ")
+          value
         end
-        #["VALUE", "Billy:TestKey", "1", "29", "\x04\bI\"\bHey\x06:", "encoding\"", "US-ASCII", "END"]
       end
     end
     
+    ## ToDo: Add a delete key method??
+    
     #pointer["slab"] = slab_id # Not really useful, I guess
-    #pointer["host"] = @identifier # Only useful in Multi
+    #pointer["size"] = data[1] # The size (in bytes)
+    #pointer["expires"] = data[2] # Unix timestamp of expiration
   end
 
 

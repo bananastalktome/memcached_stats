@@ -37,8 +37,6 @@ memcached_stats assumes a default host of @localhost@ and a port of @11211@. Val
 </code>
 </pre>
 
-In the @new@ method, a third parameter (the @identifier@) can be specified, which serves as a way to identify the memcached instance in output. This is purely presentational, and defaults to the host if not provided.
-
 After you create the new @MemcachedStats@ object, you can fetch the basic stats from memcached:
 
 <pre>
