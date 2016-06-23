@@ -5,7 +5,7 @@
 
 Gem::Specification.new do |s|
   s.name = %q{memcached_stats}
-  s.version = "0.0.1"
+  s.version = "0.0.2"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["William Schneider"]
@@ -14,14 +14,13 @@ Gem::Specification.new do |s|
   s.email = %q{bananastalktome@gmail.com}
   s.extra_rdoc_files = [
     "LICENSE",
-     "README.html",
      "README.textile"
   ]
   s.files = [
     "lib/memcached_stats.rb",
      "lib/memcached_stats/base.rb"
   ]
-  s.homepage = %q{http://github.com/bananastalktome/memcached_stats}
+  s.homepage = %q{https://github.com/bananastalktome/memcached_stats}
   s.rdoc_options = ["--charset=UTF-8"]
   s.require_paths = ["lib"]
   s.rubygems_version = %q{1.3.5}
