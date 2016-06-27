@@ -75,7 +75,12 @@ class MemcachedStats
   protected
   
   def get_summary
-    @summary = Hash[*MemcachedStats.service_connection("stats", @host, @port).sub("END\r\n","").each_line.inject([]){|arr, line| arr.push(line.sub("STAT ", "").split(' '))}.flatten]
+    stats = []
+    MemcachedStats.service_connection("stats", @host, @port).sub("END\r\n","").each_line do |line| 
+      stats.push(line.sub("STAT ", "").chomp.split(' ', 2))
+    end
+    
+    @summary = Hash[*stats.flatten]
     @summary["hit_ratio"] = @summary["get_hits"].to_f / @summary["cmd_get"].to_f
     @summary["miss_ratio"] = @summary["get_misses"].to_f / @summary["cmd_get"].to_f
     @summary["request_rate"] = @summary["cmd_get"].to_f / @summary["uptime"].to_i
