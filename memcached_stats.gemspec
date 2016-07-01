@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{memcached_stats}
-  s.version = "0.0.4"
+  s.version = "0.0.5"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["William Schneider"]
-  s.date = %q{2016-06-27}
+  s.date = %q{2016-07-01}
   s.description = %q{Gather Memcached Stats as well as Slabs}
   s.email = %q{bananastalktome@gmail.com}
   s.extra_rdoc_files = [

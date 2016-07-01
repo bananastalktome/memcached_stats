@@ -46,7 +46,7 @@ class MemcachedStats
 #   end
   
   def fetch_all_slab_keys
-    get_slabs unless @slabs
+    get_slabs
     @slabs.each do |slab|
       fetch_single_slab_keys(slab)
     end
